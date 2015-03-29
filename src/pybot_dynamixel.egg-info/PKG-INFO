@@ -1,0 +1,14 @@
+Metadata-Version: 1.1
+Name: pybot-dynamixel
+Version: 1.0
+Summary: Dynamixel servos control
+Home-page: http://www.pobot.org
+Author: Eric Pascual
+Author-email: eric@pobot.org
+License: LGPL
+Download-URL: https://github.com/Pobot/PyBot
+Description: 
+        This sub-package contains classes allowing controlling
+        Dynamixel servos.
+        
+Platform: UNKNOWN
