@@ -25,7 +25,7 @@
 
 __author__ = "Eric Pascual (eric@pobot.org)"
 
-from __future__ import print_function
+# from __future__ import print_function
 import os
 import argparse
 from . import core as dmxl

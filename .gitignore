@@ -1,2 +1,6 @@
-dist/
 *.pyc
+dist/
+*.egg-info
+
+deprecated
+build

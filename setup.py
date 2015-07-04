@@ -6,6 +6,7 @@ from setuptools import setup, find_packages
 import textwrap
 
 setup(name='pybot_dynamixel',
+      namespace_packages=['pybot'],
       version='1.0',
       description='Dynamixel servos control',
       install_requires=['pybot_core'],

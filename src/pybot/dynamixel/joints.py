@@ -4,8 +4,8 @@ __author__ = 'Eric Pascual'
 
 import time
 
-from pybot_dynamixel import Register, DynamixelBusInterface, DmxlError
-import pybot_core.log as logging
+from .core import Register, DynamixelBusInterface, DmxlError
+import pybot.core.log as logging
 
 _logger = logging.getLogger(logging.abbrev(__name__))
 
@@ -50,7 +50,7 @@ class Joint(object):
         :param float speed_resolution: degrees/sec per speed register unit
         (default: AX12 value, is 1023 steps for 114 rpm)
         :param dict servo_setup: a dictionary containing the values to be set to the servo registers.
-        Keys are the register names (see :py:class:`.core.Register` class)
+        Keys are the register names (names of the :py:class:`.core.Register` class attributes)
         (default: None)
         :raises ValueError if parameters out of range, of if inconsistency in angles related settings
         (origin, orientation and range).
@@ -79,7 +79,8 @@ class Joint(object):
         }
 
         if servo_setup:
-            self.servo_setup.update(servo_setup)
+            d = dict([(getattr(Register, reg_name), value) for reg_name, value in servo_setup.iteritems()])
+            self.servo_setup.update(d)
 
         if self.angles_orientation == Joint.ORIENTATION_CCW:
             self.servo_setup[Register.CWAngleLimit] = self.angle_to_pos(angles_range[0])
@@ -105,11 +106,11 @@ class Joint(object):
             self._logger.debug('Joint(id=%d) initialized' % self._servo_id)
             self._logger.debug('- setup:')
             for k, v in ((k, self.servo_setup[k]) for k in sorted(self.servo_setup.keys())):
-                self._logger.debug('  + ' + Register.dumps(k, v))
+                self._logger.debug('  ' + Register.dumps(k, v))
             self._logger.debug(' - servo registers:')
             for k in sorted(Register.all_regs.keys()):
                 v = self.read_register(k)
-                self._logger.debug('  + ' + Register.dumps(k, v))
+                self._logger.debug('  ' + Register.dumps(k, v))
 
     def write_register(self, register, value, immediate=True, clamped=False):
         self._bus.write_register(self._servo_id, register, value, immediate, clamped)
@@ -158,6 +159,7 @@ class Joint(object):
     def pos_to_angle(self, pos):
         """ Converts a position expressed in servo units into its equivalent in expressed in degrees and
         wrt the configuration of the servo.
+
         :param int pos: position in servo units
         :return: position in degress
         :rtype: float
@@ -168,7 +170,8 @@ class Joint(object):
         """ Sets the target position, given in degrees.
 
         The moving speed can be specified as degrees per second. If not, the last set speed
-         is used.
+        is used. If 0, use the fastest possible speed.
+
         :param float angle: target angle in degrees (wrt configured range settings)
         :param float speed: optional speed in degrees per second
         :param bool immediate: if True the movement is executed at once, otherwise it is registered for
@@ -178,7 +181,7 @@ class Joint(object):
         :rtype: int
         """
         pos = self.angle_to_pos(angle)
-        if speed:
+        if speed is not None:
             speed_reg_value = abs(int(speed / self.speed_resolution))
             self.write_register(Register.MovingSpeed, value=speed_reg_value, clamped=True)
         self.write_register(Register.GoalPosition, pos, immediate)
@@ -209,6 +212,7 @@ class Joint(object):
 
     def in_range(self, angle):
         """ Returns if a given angle is within bounds set for this joint.
+
         :param float angle: the angle to check
         :return: True if angle in range, False otherwise
         """

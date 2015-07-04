@@ -378,7 +378,7 @@ class DynamixelBusInterface(object):
         :rtype: str
         """
         return '\n'.join(
-            Register.dumps(reg, self.read_register(servo_id, reg)) for reg in Register.all_regs.iterkeys()
+            (Register.dumps(reg, self.read_register(servo_id, reg)) for reg in Register.all_regs.iterkeys())
         )
 
 
@@ -594,13 +594,11 @@ class Register(object):
 
     @classmethod
     def dumps(cls, reg, value):
-        output = []
         try:
             displayed_value = cls._decoder[reg](value)
         except KeyError:
             displayed_value = str(value)
-        output.append('- [%02d] %-30s : %s (0x%0.2x)' % (reg, cls.label(reg), displayed_value, value))
-        return '\n'.join(output)
+        return '- [%02d] %-30s : %s (0x%0.2x)' % (reg, cls.label(reg), displayed_value, value)
 
     @classmethod
     def dump(cls, reg, value):

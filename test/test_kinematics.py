@@ -6,7 +6,7 @@ __author__ = 'Eric Pascual'
 import unittest
 import math
 
-from pybot_dynamixel.kinematics import ArmKinematics
+from dynamixel.kinematics import ArmKinematics
 
 
 class IKCase(unittest.TestCase):

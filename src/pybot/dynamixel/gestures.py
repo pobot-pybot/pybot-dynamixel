@@ -15,7 +15,7 @@ class GestureController(JointsController):
         super(GestureController, self).__init__(bus_interface)
         self._use_sync_read = isinstance(bus_interface, USB2AX)
 
-    def execute(self, gesture):
+    def execute_gesture(self, gesture):
         """ Executes a gesture, which is a timed sequence of poses.
 
         The steps of the gesture are executed in sequence, the complete execution of
@@ -331,7 +331,7 @@ class GestureEngine(object):
         else:
             # if logger:
             #     logger.info("moving from '%s' to '%s'" % (self._current_pose, pose_id))
-            self._arm.execute(gesture)
+            self._arm.execute_gesture(gesture)
             self._current_pose = pose_id
             # if logger:
             #     logger.info('current pose is now : %s' % self._current_pose)
