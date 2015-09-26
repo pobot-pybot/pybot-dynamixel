@@ -6,7 +6,8 @@ import json
 import time
 import sys
 
-from .core import USB2AX, Register
+from .core import Register
+from pybot.dynamixel.dmxl_bus_intf import USB2AX
 from joints import JointsController
 
 

@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
-__author__ = 'Eric Pascual'
-
 import time
 
-from .core import Register, DynamixelBusInterface, DmxlError
+from .core import Register, DmxlError
+from pybot.dynamixel.dmxl_bus_intf import DynamixelBusInterface
 import pybot.core.log as logging
+
+__author__ = 'Eric Pascual'
+
 
 _logger = logging.getLogger(logging.abbrev(__name__))
 
@@ -95,12 +97,28 @@ class Joint(object):
             raise ValueError(msg)
 
         self._setup_is_valid = True
-        try:
-            self.apply_servo_setup()
-        except DmxlError as e:
-            msg = 'servo communication error'
-            self._logger.error("%s (%s)", msg, e)
-            raise DmxlError(msg)
+
+        retry_delay = 1
+        retry_cnt = 3
+        retried = False
+        while retry_cnt:
+            try:
+                self.apply_servo_setup()
+            except DmxlError as e:
+                msg = 'servo communication error'
+                self._logger.warning("%s (%s)", msg, e)
+                retry_cnt -= 1
+                if not retry_cnt:
+                    self._logger.error('solid error : cannot recover from error')
+                    raise DmxlError(msg)
+                else:
+                    self._logger.warning('retrying in %d secs', retry_delay)
+                    time.sleep(retry_delay)
+                    retried = True
+            else:
+                if retried:
+                    self._logger.info('recovered from transient error')
+                break
 
         if self._logger.isEnabledFor(logging.DEBUG):
             self._logger.debug('Joint(id=%d) initialized' % self._servo_id)
