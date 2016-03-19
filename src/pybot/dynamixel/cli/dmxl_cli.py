@@ -23,12 +23,11 @@
 
 """ Common definitions for command line interface dmxl tools """
 
-__author__ = "Eric Pascual (eric@pobot.org)"
-
-# from __future__ import print_function
 import os
 import argparse
-from . import core as dmxl
+from ..core import Register
+
+__author__ = "Eric Pascual (eric@pobot.org)"
 
 
 if os.name == 'posix':
@@ -75,7 +74,7 @@ def dmxl_regnum(s):
     except ValueError:
         raise argparse.ArgumentTypeError('not a valid integer (%s)' % s)
 
-    dmxl.Register.check_id(intval)
+    Register.check_id(intval)
     return intval
 
 
@@ -103,6 +102,11 @@ def add_bus_argparse_argument_group(parser):
     group.add_argument('-T', '--timeout', dest='timeout', type=float,
                        help='bus timeout (in secs.)',
                        default=0.05)
+    group.add_argument('-X', '--xevel',
+                       action='store_true',
+                       dest='xevel',
+                       default=False,
+                       help="use USB2AX Xevel's interface instead of standard USB2Dynamixel Robotis one")
 
 
 def add_argparse_general_options(parser):
