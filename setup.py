@@ -7,7 +7,7 @@ import textwrap
 setup(
     name='pybot-dynamixel',
     namespace_packages=['pybot'],
-    version='1.0',
+    version='1.1.0',
     description='Dynamixel servos control',
     install_requires=['pybot-core'],
     license='LGPL',
