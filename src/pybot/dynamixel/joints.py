@@ -9,7 +9,8 @@ import pybot.core.log as logging
 __author__ = 'Eric Pascual'
 
 
-_logger = logging.getLogger(logging.abbrev(__name__))
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 class Joint(object):
@@ -41,7 +42,7 @@ class Joint(object):
         """
         :param int servo_id: the id of the joint servo
         :param DynamixelBusInterface bus_interface: the Dynamixel interface used to talked to the servos
-        :param int angles_origin: the servo position corresponding to 0 degrees
+        :param int angles_origin: the servo position (0-1023) corresponding to 0 degrees
         (default : 0)
         :param int angles_orientation: the direction in which angles are counted positive
         (default: counter-clockwise, ie trigonometric)
@@ -62,7 +63,7 @@ class Joint(object):
         if not (bus_interface and isinstance(bus_interface, DynamixelBusInterface)):
             raise TypeError('invalid or missing bus_interface parameter')
 
-        self._logger = _logger.getChild('joint.%d' % servo_id)
+        self._logger = logger.getChild('joint.%d' % servo_id)
 
         self._servo_id = servo_id
         self._bus = bus_interface
@@ -117,7 +118,7 @@ class Joint(object):
                     retried = True
             else:
                 if retried:
-                    self._logger.info('recovered from transient error')
+                    self._logger.info('--> recovered from transient error')
                 break
 
         if self._logger.isEnabledFor(logging.DEBUG):
@@ -129,6 +130,10 @@ class Joint(object):
             for k in sorted(Register.all_regs.keys()):
                 v = self.read_register(k)
                 self._logger.debug('  ' + Register.dumps(k, v))
+
+    @property
+    def logger(self):
+        return self._logger
 
     def write_register(self, register, value, immediate=True, clamped=False):
         self._bus.write_register(self._servo_id, register, value, immediate, clamped)
@@ -145,7 +150,7 @@ class Joint(object):
         return '\n'.join((Register.dumps(k, v) for k, v in ((k, setup[k]) for k in sorted(setup.keys()))))
 
     def dump_regs(self):
-        self._bus.dump_regs(self._servo_id)
+        return self._bus.dump_regs(self._servo_id)
 
     def apply_servo_setup(self):
         if self._setup_is_valid:
@@ -158,6 +163,7 @@ class Joint(object):
     def angle_to_pos(self, angle):
         """ Converts a position expressed in degrees and wrt the configuration of the servo into its equivalent
         expressed in servo units.
+
         :param float pos: position in degress
         :return: position in servo units
         :rtype: int
@@ -224,6 +230,7 @@ class Joint(object):
 
     def enable_torque(self, state):
         """ Enable/disable torque application, i.e. hold the current position or not.
+
         :param bool state: apply torque or not
         """
         self.write_register(Register.TorqueEnable, state)
@@ -251,12 +258,12 @@ class JointsController(object):
     @property
     def joints(self):
         """ The dictionary of joints attached to the controller.
-        :return:
         """
         return self._joints
 
     def configure_joints(self, cfg):
         """ Creates the joints attached to the controller, according to the given configuration data.
+
         :param dict cfg: the joints configuration data, keyed by the joint names
         """
         for joint_name, joint_cfg in cfg.iteritems():
@@ -270,13 +277,35 @@ class JointsController(object):
 
     def get_pose(self):
         """ Returns the set of the joints current position (as an angle in degrees).
+
         :return: the current pose
         :rtype: dict of float
         """
         return [(name, joint.get_current_angle()) for name, joint in self._joints.iteritems()]
 
+    def set_pose(self, pose, delay, wait=False):
+        """ Moves the joints to the given pose in the given amount of time.
+
+        Individual speeds are computed so that all the joints end their move at the
+        same time.
+
+        :param dict pose: the goal angles for the joints to move
+        :param float delay: the duration of the move, in seconds
+        :param bool wait: if True, the method waits for all joints finishing their move
+        """
+        current_pose = dict(self.get_pose())
+        delta = {n: pose[n] - a for n, a in current_pose.iteritems()}
+        speeds = {n: d / delay for n, d in delta.iteritems()}
+        for n, d in delta.iteritems():
+            j = self._joints[n]
+            j.set_goal_angle(pose[n], speed=speeds[n], immediate=False)
+        self.action(wait=wait)
+
     def enable_torque(self, enabled):
         """ Enables or disables the torque application for all the servos.
+
+        TODO: optimize with sync write
+
         :param bool enabled: torque application status
         """
         for joint in self._joints.itervalues():
@@ -285,9 +314,20 @@ class JointsController(object):
     def check_pose(self, pose):
         """ Checks if all positions included in the pose are within limits of the
         involved joints.
+
         :param pose: the pose to check
         :type pose: list of tuple (name, angle)
-        :return: True if all positions within limits
+        :return: the list of joint names which position is outside limits
+        :rtype: list
         """
         return [name for name, angle in pose if not self._joints[name].in_range(angle)]
 
+    def action(self, wait=False):
+        """ Execute all pending moves.
+
+        :param bool wait: if True wait for completion of all moves before returning
+        """
+        self._interface.action()
+
+        if wait:
+            pass    # TODO implement it
